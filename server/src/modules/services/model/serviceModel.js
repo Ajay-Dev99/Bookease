@@ -15,6 +15,10 @@ const serviceSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Provider",
         required: true
+    },
+    images: {
+        type: [String],
+        default: []
     }
 }, { timestamps: true });
 

@@ -25,6 +25,10 @@ const providerSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    profileImage: {
+        type: String,
+        default: 'https://res.cloudinary.com/djp9o0vcc/image/upload/v1715403067/default-profile_wxfjau.png' // You can replace with your own default
+    },
     services: [
         {
             type: mongoose.Schema.Types.ObjectId,

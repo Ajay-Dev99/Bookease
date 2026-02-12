@@ -28,6 +28,11 @@ exports.signup = async (req, res, next) => {
     try {
         const { name, email, password, about, address, phoneNumber } = req.body;
 
+        let profileImage;
+        if (req.file) {
+            profileImage = req.file.path;
+        }
+
         // Check if provider already exists
         const existingProvider = await Provider.findOne({ email });
         if (existingProvider) {
@@ -42,7 +47,9 @@ exports.signup = async (req, res, next) => {
             password: hashedPassword,
             about,
             address,
-            phoneNumber
+            phoneNumber,
+            profileImage
+            // schedule will use defaults defined in the model
         });
 
         createSendToken(newProvider, 201, res);

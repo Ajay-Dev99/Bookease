@@ -12,12 +12,18 @@ exports.createService = async (req, res, next) => {
         const { name, description, duration, price, schedule, blockedDates } = req.body;
         const providerId = req.user._id;
 
+        let images = [];
+        if (req.files && req.files.length > 0) {
+            images = req.files.map(file => file.path);
+        }
+
         const newService = await Service.create([{
             name,
             description,
             duration,
             price,
-            provider: providerId
+            provider: providerId,
+            images: images
         }], { session });
 
         const providerUpdate = {
