@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
 
 const connectDatabase = async () => {
     try {
+        // Force custom DNS resolution to bypass local network blocking
+        dns.setServers(['8.8.8.8', '8.8.4.4']);
+
         const conn = await mongoose.connect(process.env.MONGO_URI);
 
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
