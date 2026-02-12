@@ -5,6 +5,8 @@ require('dotenv').config();
 const connectDatabase = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
+const apiRoutes = require('./routes');
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -15,6 +17,9 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
+
+
+app.use('/api/v1', apiRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({
