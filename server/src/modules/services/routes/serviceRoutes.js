@@ -5,6 +5,7 @@ const router = express.Router();
 const uploadService = createUploader('bookease/services');
 
 
+router.get('/', serviceController.getServices);
 router.post('/', uploadService.array('images', 5), serviceController.createService);
 
 module.exports = router;
