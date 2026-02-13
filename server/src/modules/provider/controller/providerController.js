@@ -30,7 +30,7 @@ exports.getProvider = async (req, res, next) => {
         const provider = await Provider.findById(req.params.id)
             .populate({
                 path: 'services',
-                select: 'name price description duration category isActive'
+                select: 'name price description duration isActive images'
             })
             .select('-password');
 
