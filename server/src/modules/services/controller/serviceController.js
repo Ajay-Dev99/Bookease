@@ -13,10 +13,8 @@ exports.createService = async (req, res, next) => {
 
         let { name, description, duration, price, schedule, blockedDates } = req.body;
 
-        // const providerId = req.user._id;
-        const providerId = "698e266f1dd46e345f083f18";
+        const providerId = req.user._id;
 
-        // Parse JSON fields if coming from multipart/form-data
         if (typeof schedule === 'string') {
             try {
                 schedule = JSON.parse(schedule);
@@ -33,13 +31,10 @@ exports.createService = async (req, res, next) => {
             }
         }
 
-        // Handle image uploads
         let images = [];
         if (req.files && req.files.length > 0) {
             images = req.files.map(file => file.path);
         }
-
-        // 1️⃣ Create Service
         const newService = new Service({
             name,
             description,
@@ -51,7 +46,6 @@ exports.createService = async (req, res, next) => {
 
         await newService.save({ session });
 
-        // 2️⃣ Update Provider (push service + optionally update schedule)
         const providerUpdate = {
             $push: { services: newService._id }
         };
@@ -66,7 +60,6 @@ exports.createService = async (req, res, next) => {
             { session }
         );
 
-        // 3️⃣ Insert Blocked Dates (if provided)
         if (blockedDates && blockedDates.length > 0) {
 
             const blockDocs = blockedDates.map(dateString => ({
@@ -79,7 +72,6 @@ exports.createService = async (req, res, next) => {
             await ProviderBlock.insertMany(blockDocs, { session });
         }
 
-        // 4️⃣ Commit Transaction
         await session.commitTransaction();
 
         res.status(201).json({
@@ -104,14 +96,14 @@ exports.getServices = async (req, res, next) => {
         const services = await Service.find()
             .populate({
                 path: 'provider',
-                select: 'name email profileImage schedule' // Get provider schedule
+                select: 'name email profileImage schedule'
             });
 
 
         const servicesWithAvailability = await Promise.all(services.map(async (service) => {
             const blockedDates = await ProviderBlock.find({
                 provider: service.provider._id,
-                date: { $gte: new Date() } // Only future blocked dates
+                date: { $gte: new Date() }
             }).select('date isFullDay startTime endTime reason');
 
             return {

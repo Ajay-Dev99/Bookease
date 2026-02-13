@@ -11,8 +11,6 @@ const signToken = (id) => {
 
 const createSendToken = (user, statusCode, res) => {
     const token = signToken(user._id);
-
-    // Remove password from output
     user.password = undefined;
 
     res.status(statusCode).json({
@@ -33,7 +31,6 @@ exports.signup = async (req, res, next) => {
             profileImage = req.file.path;
         }
 
-        // Check if provider already exists
         const existingProvider = await Provider.findOne({ email });
         if (existingProvider) {
             return next(new AppError('Provider already exists with this email', 400));
@@ -49,7 +46,6 @@ exports.signup = async (req, res, next) => {
             address,
             phoneNumber,
             profileImage
-            // schedule will use defaults defined in the model
         });
 
         createSendToken(newProvider, 201, res);

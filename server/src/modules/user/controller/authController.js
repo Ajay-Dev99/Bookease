@@ -12,7 +12,6 @@ const signToken = (id) => {
 const createSendToken = (user, statusCode, res) => {
     const token = signToken(user._id);
 
-    // Remove password from output
     user.password = undefined;
 
     res.status(statusCode).json({
@@ -68,5 +67,3 @@ exports.login = async (req, res, next) => {
         next(error);
     }
 };
-
-// exports.protect removed - moved to src/middleware/authMiddleware.js
