@@ -1,88 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoSearch, IoCalendar, IoTime, IoLocation, IoCall, IoMail, IoChevronForward, IoStar, IoClose } from 'react-icons/io5';
+import axiosInstance from '../../config/axios';
 
 const BookingHistory = () => {
     const [activeFilter, setActiveFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Mock booking data
-    const bookings = [
-        {
-            id: 1,
-            confirmationCode: 'BK-A3F8G2H1K',
-            provider: {
-                name: 'Dr. Sarah Mitchell',
-                specialty: 'General Physician',
-                image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=200&auto=format&fit=crop'
-            },
-            service: 'General Consultation',
-            date: 'February 20, 2026',
-            time: '2:00 PM',
-            location: '456 Park Avenue, Suite 200, New York, NY 10022',
-            price: 150,
-            status: 'upcoming'
-        },
-        {
-            id: 2,
-            confirmationCode: 'BK-B9D4E6F2M',
-            provider: {
-                name: 'Dr. Michael Chen',
-                specialty: 'Cardiologist',
-                image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=200&auto=format&fit=crop'
-            },
-            service: 'Cardiac Checkup',
-            date: 'February 25, 2026',
-            time: '10:00 AM',
-            location: '789 Medical Plaza, Floor 5, New York, NY 10023',
-            price: 200,
-            status: 'upcoming'
-        },
-        {
-            id: 3,
-            confirmationCode: 'BK-C7H3J5K9N',
-            provider: {
-                name: 'Dr. Emily Rodriguez',
-                specialty: 'Dermatologist',
-                image: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?q=80&w=200&auto=format&fit=crop'
-            },
-            service: 'Skin Consultation',
-            date: 'January 30, 2026',
-            time: '3:00 PM',
-            location: '123 Health Street, New York, NY 10001',
-            price: 180,
-            status: 'completed'
-        },
-        {
-            id: 4,
-            confirmationCode: 'BK-D2F8G4H6P',
-            provider: {
-                name: 'Dr. James Wilson',
-                specialty: 'Orthopedic Surgeon',
-                image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=200&auto=format&fit=crop'
-            },
-            service: 'Joint Assessment',
-            date: 'January 15, 2026',
-            time: '11:00 AM',
-            location: '456 Wellness Center, New York, NY 10002',
-            price: 250,
-            status: 'completed'
-        },
-        {
-            id: 5,
-            confirmationCode: 'BK-E5J9K2L7Q',
-            provider: {
-                name: 'Dr. Lisa Thompson',
-                specialty: 'Pediatrician',
-                image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=200&auto=format&fit=crop'
-            },
-            service: 'Child Wellness Visit',
-            date: 'December 20, 2025',
-            time: '9:00 AM',
-            location: '789 Kids Care, New York, NY 10003',
-            price: 120,
-            status: 'cancelled'
+    useEffect(() => {
+        fetchBookings();
+    }, []);
+
+    const fetchBookings = async () => {
+        setLoading(true);
+        try {
+            const res = await axiosInstance.get('/bookings/my-appointments');
+            const { upcoming, past } = res.data.data;
+
+            // Helper to format booking data for UI
+            const mapBooking = (b, forcedStatus) => ({
+                id: b._id,
+                confirmationCode: b._id.slice(-6).toUpperCase(),
+                provider: {
+                    name: b.provider.name,
+                    specialty: 'Healthcare Provider', // Default as schema might vary
+                    image: b.provider.profileImage || 'https://via.placeholder.com/150'
+                },
+                service: b.service.name,
+                date: new Date(b.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                time: (() => {
+                    const [h, m] = b.startTime.split(':');
+                    const d = new Date();
+                    d.setHours(h, m);
+                    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                })(),
+                location: b.provider.address || 'Medical Center',
+                price: b.service.price,
+                status: forcedStatus || b.status
+            });
+
+            const allBookings = [
+                ...upcoming.map(b => mapBooking(b, 'upcoming')),
+                ...past.map(b => mapBooking(b))
+            ];
+            setBookings(allBookings);
+        } catch (err) {
+            console.error("Failed to fetch bookings:", err);
+            setError("Failed to load your appointments.");
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const handleCancel = async (id) => {
+        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+        try {
+            await axiosInstance.patch(`/bookings/${id}/cancel`);
+            fetchBookings(); // Refresh list to update status
+        } catch (err) {
+            console.error("Failed to cancel booking:", err);
+            alert("Failed to cancel booking. Please try again.");
+        }
+    };
 
     const filters = [
         { id: 'all', label: 'All' },
@@ -204,7 +185,7 @@ const BookingHistory = () => {
                         </div>
                         <div className="space-y-6">
                             {filteredBookings.filter(b => b.status === 'upcoming').map(booking => (
-                                <BookingCard key={booking.id} booking={booking} getStatusColor={getStatusColor} />
+                                <BookingCard key={booking.id} booking={booking} getStatusColor={getStatusColor} onCancel={handleCancel} />
                             ))}
                         </div>
                     </div>
@@ -241,7 +222,7 @@ const BookingHistory = () => {
 };
 
 // Booking Card Component
-const BookingCard = ({ booking, getStatusColor, isPast = false }) => {
+const BookingCard = ({ booking, getStatusColor, isPast = false, onCancel }) => {
     const statusColors = getStatusColor(booking.status);
 
     return (
@@ -340,7 +321,10 @@ const BookingCard = ({ booking, getStatusColor, isPast = false }) => {
                         <div className="flex items-center gap-3">
                             <span className="text-2xl font-bold text-blue-600">${booking.price}</span>
                             {!isPast && (
-                                <button className="px-6 py-2.5 bg-red-100 text-red-600 font-bold rounded-2xl hover:bg-red-200 transition-colors">
+                                <button
+                                    onClick={() => onCancel(booking.id)}
+                                    className="px-6 py-2.5 bg-red-100 text-red-600 font-bold rounded-2xl hover:bg-red-200 transition-colors"
+                                >
                                     Cancel Booking
                                 </button>
                             )}
