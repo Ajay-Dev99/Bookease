@@ -73,4 +73,35 @@ exports.login = async (req, res, next) => {
     }
 };
 
+exports.updateProfile = async (req, res, next) => {
+    try {
+        const providerId = req.user._id;
+
+        const allowedUpdates = ['name', 'about', 'address', 'phoneNumber'];
+        const updates = {};
+
+        allowedUpdates.forEach(field => {
+            if (req.body[field]) updates[field] = req.body[field];
+        });
+
+        if (req.file) {
+            updates.profileImage = req.file.path;
+        }
+
+        const updatedProvider = await Provider.findByIdAndUpdate(providerId, updates, {
+            new: true,
+            runValidators: true
+        });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                provider: updatedProvider
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 

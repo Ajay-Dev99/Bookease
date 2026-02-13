@@ -9,4 +9,6 @@ const uploadService = createUploader('bookease/services');
 router.get('/', serviceController.getServices);
 router.post('/', protectProvider, uploadService.array('images', 5), serviceController.createService);
 
+router.patch('/:serviceId', protectProvider, uploadService.array('images', 5), serviceController.updateService);
+
 module.exports = router;

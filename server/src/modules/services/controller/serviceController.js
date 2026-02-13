@@ -126,3 +126,45 @@ exports.getServices = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.updateService = async (req, res, next) => {
+    try {
+        const { serviceId } = req.params;
+        const providerId = req.user._id;
+
+        const service = await Service.findOne({ _id: serviceId, provider: providerId });
+
+        if (!service) {
+            return next(new AppError('Service not found or you do not have permission to edit it', 404));
+        }
+
+        const allowedUpdates = ['name', 'description', 'duration', 'price'];
+        allowedUpdates.forEach(update => {
+            if (req.body[update] !== undefined) {
+                service[update] = req.body[update];
+            }
+        });
+
+        if (req.files && req.files.length > 0) {
+            const newImages = req.files.map(file => file.path);
+            service.images = [...service.images, ...newImages];
+        }
+        if (req.body.removeImages) {
+            let removeList = req.body.removeImages;
+            if (typeof removeList === 'string') removeList = [removeList];
+
+            service.images = service.images.filter(img => !removeList.includes(img));
+        }
+
+        await service.save();
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                service
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
