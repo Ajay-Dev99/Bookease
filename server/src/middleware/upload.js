@@ -13,7 +13,7 @@ const createUploader = (folderName) => {
         cloudinary: cloudinary,
         params: {
             folder: folderName,
-            allowed_formats: ['jpg', 'png', 'jpeg']
+            allowed_formats: ['jpg', 'png', 'jpeg', 'avif', 'webp']
         }
     });
 

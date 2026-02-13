@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoBook, IoEye, IoEyeOff, IoArrowForward } from 'react-icons/io5';
+import { useProviderLogin } from '../services/hooks/useProviderAuth';
 
 const ProviderLogin = () => {
     const navigate = useNavigate();
+    const { mutate: login, isPending, isError, error } = useProviderLogin();
+
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -20,10 +23,7 @@ const ProviderLogin = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Handle login logic here
-        console.log('Login data:', formData);
-        // Navigate to provider dashboard after successful login
-        // navigate('/provider/dashboard');
+        login(formData);
     };
 
     return (
@@ -70,6 +70,14 @@ const ProviderLogin = () => {
 
                         {/* Login Form */}
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Error Message */}
+                            {isError && (
+                                <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4">
+                                    <p className="text-red-600 font-bold text-sm">
+                                        {error?.response?.data?.message || 'Login failed. Please check your credentials.'}
+                                    </p>
+                                </div>
+                            )}
                             {/* Email */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -121,11 +129,21 @@ const ProviderLogin = () => {
                             {/* Submit Button */}
                             <button
                                 type="submit"
-                                className="w-full px-8 py-3.5 rounded-2xl text-white font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                                disabled={isPending}
+                                className="w-full px-8 py-3.5 rounded-2xl text-white font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 style={{ background: 'linear-gradient(90deg, #155DFC 0%, #9810FA 100%)' }}
                             >
-                                Login
-                                <IoArrowForward size={20} />
+                                {isPending ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Logging in...
+                                    </>
+                                ) : (
+                                    <>
+                                        Login
+                                        <IoArrowForward size={20} />
+                                    </>
+                                )}
                             </button>
                         </form>
 

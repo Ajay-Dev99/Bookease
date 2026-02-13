@@ -117,6 +117,26 @@ exports.getService = async (req, res, next) => {
     }
 };
 
+// Get all services for the logged-in provider
+exports.getProviderServices = async (req, res, next) => {
+    try {
+        const providerId = req.user._id;
+
+        const services = await Service.find({ provider: providerId })
+            .sort({ createdAt: -1 }); // Newest first
+
+        res.status(200).json({
+            status: 'success',
+            results: services.length,
+            data: {
+                services
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Update service (including schedule)
 exports.updateService = async (req, res, next) => {
     try {

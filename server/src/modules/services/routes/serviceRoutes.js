@@ -8,12 +8,17 @@ const uploadService = createUploader('bookease/services');
 
 // Public routes
 router.get('/', serviceController.getServices);
+
+// Protected routes (provider only) - MUST come before /:serviceId
+router.get('/my-services', protectProvider, serviceController.getProviderServices);
+router.post('/', protectProvider, uploadService.array('images', 5), serviceController.createService);
+
+// Public routes with parameters - MUST come after specific routes
 router.get('/:serviceId', serviceController.getService);
 router.get('/:serviceId/availability', serviceController.getServiceAvailability);
 router.get('/:serviceId/blocked-dates', serviceController.getBlockedDates);
 
-// Protected routes (provider only)
-router.post('/', protectProvider, uploadService.array('images', 5), serviceController.createService);
+// Protected routes with parameters
 router.patch('/:serviceId', protectProvider, uploadService.array('images', 5), serviceController.updateService);
 router.delete('/:serviceId', protectProvider, serviceController.deleteService);
 
