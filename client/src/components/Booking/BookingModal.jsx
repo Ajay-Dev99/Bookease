@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { IoArrowBack, IoChevronBack, IoChevronForward, IoCalendar, IoTime, IoPerson, IoClose } from "react-icons/io5";
 
 const BookingModal = ({ isOpen, onClose, provider, service }) => {
-    if (!isOpen) return null;
+    const navigate = useNavigate();
+
 
     const displayProvider = provider || {
         name: "Service Provider",
@@ -16,9 +18,13 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
         duration: 30
     };
 
-    const [selectedDate, setSelectedDate] = useState(13); // Default to 13th for demo
+    const [selectedDate, setSelectedDate] = useState(""); // Default to 13th for demo
     const [selectedTime, setSelectedTime] = useState("11:00 AM");
     const [currentMonth, setCurrentMonth] = useState("February 2026");
+
+
+    if (!isOpen) return null;
+
 
     // Generate calendar days
     const days = [
@@ -35,6 +41,7 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
         "4:00 PM", "4:30 PM", "5:00 PM"
     ];
 
+
     const handleContinue = () => {
         // Navigate to confirmation or next step
         console.log("Booking confirmed:", {
@@ -43,7 +50,16 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
             date: `February ${selectedDate}, 2026`,
             time: selectedTime
         });
-        alert("Proceeding to confirmation...");
+
+        onClose(); // Close the modal
+        navigate('/booking-success', {
+            state: {
+                provider: displayProvider,
+                service: displayService,
+                date: `February ${selectedDate}, 2026`,
+                time: selectedTime
+            }
+        });
     };
 
     return (

@@ -7,6 +7,7 @@ import CustomerLogin from './pages/CustomerLogin';
 import CustomerSignup from './pages/CustomerSignup';
 import ProvidersList from './pages/ProvidersList';
 import ProviderServices from './pages/ProviderServices';
+import BookingSuccess from './pages/BookingSuccess';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/providers" element={<ProvidersList />} />
           <Route path="/providers/:id" element={<ProviderServices />} />
+          <Route path="/booking-success" element={<BookingSuccess />} />
         </Route>
         <Route path="/login/customer" element={<CustomerLogin />} />
         <Route path="/signup/customer" element={<CustomerSignup />} />
