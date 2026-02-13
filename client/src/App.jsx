@@ -15,6 +15,8 @@ import ProviderLayout from './layouts/ProviderLayout';
 import ProviderDashboard from './pages/provider/ProviderDashboard';
 import ProviderServicesPage from './pages/provider/ProviderServicesPage';
 import ProviderBookings from './pages/provider/ProviderBookings';
+import ProviderLogin from './pages/ProviderLogin';
+import ProviderSignup from './pages/ProviderSignup';
 
 function App() {
   return (
@@ -39,6 +41,8 @@ function App() {
         {/* Auth Routes */}
         <Route path="/login/customer" element={<CustomerLogin />} />
         <Route path="/signup/customer" element={<CustomerSignup />} />
+        <Route path="/login/provider" element={<ProviderLogin />} />
+        <Route path="/signup/provider" element={<ProviderSignup />} />
       </Routes>
     </Router>
   );
