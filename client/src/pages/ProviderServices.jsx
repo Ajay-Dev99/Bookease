@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { IoTime, IoPricetag, IoArrowBack, IoStar, IoLocation, IoCheckmarkCircle } from "react-icons/io5";
+import BookingModal from '../components/Booking/BookingModal';
 
 // Mock data for providers (reused from ProvidersList for context)
 const providersData = [
@@ -83,7 +84,10 @@ const providersData = [
 
 const ProviderServices = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [provider, setProvider] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedService, setSelectedService] = useState(null);
 
     useEffect(() => {
         // Simulate API fetch by finding the provider in mock data
@@ -158,7 +162,12 @@ const ProviderServices = () => {
                                     </div>
                                 </div>
 
-                                <button className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors mt-auto shadow-md shadow-blue-200">
+                                <button
+                                    onClick={() => {
+                                        setSelectedService(service);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors mt-auto shadow-md shadow-blue-200">
                                     Book Now
                                 </button>
                             </div>
@@ -166,6 +175,13 @@ const ProviderServices = () => {
                     ))}
                 </div>
             </div>
+
+            <BookingModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                provider={provider}
+                service={selectedService}
+            />
         </div>
     );
 };
