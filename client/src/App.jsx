@@ -1,7 +1,18 @@
-export default function App() {
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import UserLayout from './layouts/UserLayout';
+
+function App() {
   return (
-    <div className="text-3xl font-bold underline">
-      <h1 className="bg-red-500">This is react project</h1>
-    </div>
-  )
+    <Router>
+      <Routes>
+        <Route element={<UserLayout />}>
+          <Route path="/" element={<Home />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
 }
+
+export default App; 
