@@ -141,3 +141,104 @@ exports.cancelBooking = async (req, res, next) => {
         session.endSession();
     }
 };
+
+exports.getMyAppointments = async (req, res, next) => {
+    try {
+        const userId = req.user._id;
+        const now = new Date();
+
+        // Start of current day (00:00:00) for date comparison
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+
+        // Current time string (HH:MM) for time comparison within the same day
+        const currentHours = now.getHours().toString().padStart(2, '0');
+        const currentMinutes = now.getMinutes().toString().padStart(2, '0');
+        const currentTimeString = `${currentHours}:${currentMinutes}`;
+
+        const appointments = await Booking.aggregate([
+            {
+                $match: { user: userId }
+            },
+            {
+                $lookup: {
+                    from: 'providers',
+                    localField: 'provider',
+                    foreignField: '_id',
+                    as: 'provider'
+                }
+            },
+            { $unwind: '$provider' },
+            {
+                $lookup: {
+                    from: 'services',
+                    localField: 'service',
+                    foreignField: '_id',
+                    as: 'service'
+                }
+            },
+            { $unwind: '$service' },
+            {
+                $addFields: {
+                    isUpcoming: {
+                        $cond: {
+                            if: { $eq: ['$status', 'cancelled'] },
+                            then: false,
+                            else: {
+                                $cond: {
+                                    if: { $gt: ['$date', todayStart] },
+                                    then: true,
+                                    else: {
+                                        $cond: {
+                                            if: { $eq: ['$date', todayStart] },
+                                            then: { $gte: ['$startTime', currentTimeString] },
+                                            else: false
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $facet: {
+                    upcoming: [
+                        { $match: { isUpcoming: true } },
+                        { $sort: { date: 1, startTime: 1 } },
+                        {
+                            $project: {
+                                isUpcoming: 0,
+                                "provider.password": 0,
+                                "provider.__v": 0,
+                                "service.__v": 0
+                            }
+                        }
+                    ],
+                    past: [
+                        { $match: { isUpcoming: false } },
+                        { $sort: { date: -1, startTime: -1 } },
+                        {
+                            $project: {
+                                isUpcoming: 0,
+                                "provider.password": 0,
+                                "provider.__v": 0,
+                                "service.__v": 0
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                upcoming: appointments[0].upcoming,
+                past: appointments[0].past
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};

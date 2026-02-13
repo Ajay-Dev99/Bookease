@@ -7,6 +7,9 @@ const router = express.Router();
 // All routes are protected
 router.use(protect);
 
+// Get My Appointments
+router.get('/my-appointments', bookingController.getMyAppointments);
+
 // Cancel Booking
 router.patch('/:bookingId/cancel', bookingController.cancelBooking);
 
