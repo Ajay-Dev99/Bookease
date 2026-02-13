@@ -21,15 +21,6 @@ const ProviderSignup = () => {
         about: '',
         address: '',
         businessName: '',
-        schedule: {
-            monday: { isActive: true, startTime: '09:00', endTime: '17:00' },
-            tuesday: { isActive: true, startTime: '09:00', endTime: '17:00' },
-            wednesday: { isActive: true, startTime: '09:00', endTime: '17:00' },
-            thursday: { isActive: true, startTime: '09:00', endTime: '17:00' },
-            friday: { isActive: true, startTime: '09:00', endTime: '17:00' },
-            saturday: { isActive: false, startTime: '09:00', endTime: '17:00' },
-            sunday: { isActive: false, startTime: '09:00', endTime: '17:00' }
-        },
 
         // Other
         agreeToTerms: false
@@ -41,19 +32,10 @@ const ProviderSignup = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-
-        // Handle schedule separately
-        if (name === 'schedule') {
-            setFormData(prev => ({
-                ...prev,
-                schedule: value
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: type === 'checkbox' ? checked : value
-            }));
-        }
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
     };
 
     const handleImageUpload = (e) => {
@@ -126,8 +108,7 @@ const ProviderSignup = () => {
             about: `${formData.specialty} - ${formData.about}`,
             address: formData.address,
             password: formData.password,
-            profileImage: profileImage,
-            schedule: formData.schedule
+            profileImage: profileImage
         };
 
         console.log('Submitting provider data:', submitData);

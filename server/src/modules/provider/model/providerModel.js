@@ -34,16 +34,7 @@ const providerSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: "Service"
         }
-    ],
-    schedule: {
-        monday: { isActive: { type: Boolean, default: true }, startTime: { type: String, default: '10:00' }, endTime: { type: String, default: '16:00' } },
-        tuesday: { isActive: { type: Boolean, default: true }, startTime: { type: String, default: '10:00' }, endTime: { type: String, default: '16:00' } },
-        wednesday: { isActive: { type: Boolean, default: true }, startTime: { type: String, default: '10:00' }, endTime: { type: String, default: '16:00' } },
-        thursday: { isActive: { type: Boolean, default: true }, startTime: { type: String, default: '10:00' }, endTime: { type: String, default: '16:00' } },
-        friday: { isActive: { type: Boolean, default: true }, startTime: { type: String, default: '10:00' }, endTime: { type: String, default: '16:00' } },
-        saturday: { isActive: { type: Boolean, default: false }, startTime: { type: String, default: '10:00' }, endTime: { type: String, default: '16:00' } },
-        sunday: { isActive: { type: Boolean, default: false }, startTime: { type: String, default: '10:00' }, endTime: { type: String, default: '16:00' } }
-    }
+    ]
 })
 
 module.exports = mongoose.model("Provider", providerSchema)
