@@ -31,9 +31,7 @@ const Navbar = () => {
                             <Link to="/my-appointments" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
                                 My Appointments
                             </Link>
-                            <Link to="/contact" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
-                                Contact
-                            </Link>
+
                         </div>
 
                         <div className="hidden md:flex items-center gap-4">
