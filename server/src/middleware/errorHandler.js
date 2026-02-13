@@ -59,14 +59,20 @@ const sendErrorProd = (err, res) => {
 
 
 const errorHandler = (err, req, res, next) => {
+    // Prevent sending response if headers already sent
+    if (res.headersSent) {
+        return next(err);
+    }
 
     console.log(err, "error in errorHandler");
     err.statusCode = err.statusCode || 500;
     err.status = err.status || 'error';
 
-    if (process.env.NODE_ENV === 'development') {
+    const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+
+    if (isDevelopment) {
         sendErrorDev(err, res);
-    } else if (process.env.NODE_ENV === 'production') {
+    } else {
         let error = { ...err };
         error.message = err.message;
 

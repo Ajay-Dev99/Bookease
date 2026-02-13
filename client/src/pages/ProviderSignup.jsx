@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { IoBook, IoArrowForward, IoArrowBack } from 'react-icons/io5';
 import RegistrationSteps from '../components/Provider/RegistrationSteps';
 import BasicInfoStep from '../components/Provider/BasicInfoStep';
 import AboutYouStep from '../components/Provider/AboutYouStep';
+import { useProviderSignup } from '../services/hooks/useProviderAuth';
 
 const ProviderSignup = () => {
-    const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
         // Step 1: Basic Info
@@ -29,6 +29,10 @@ const ProviderSignup = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [profileImage, setProfileImage] = useState(null);
+    const [profileImageFile, setProfileImageFile] = useState(null);
+
+    // React Query mutation
+    const { mutate: signup, isPending, isError, error } = useProviderSignup();
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -41,6 +45,10 @@ const ProviderSignup = () => {
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Store the actual file for upload
+            setProfileImageFile(file);
+
+            // Create preview
             const reader = new FileReader();
             reader.onloadend = () => {
                 setProfileImage(reader.result);
@@ -105,15 +113,14 @@ const ProviderSignup = () => {
             name: formData.name,
             email: formData.email,
             phoneNumber: formData.phoneNumber,
-            about: `${formData.specialty} - ${formData.about}`,
+            about: `${formData.specialty} - ${formData.about} `,
             address: formData.address,
             password: formData.password,
-            profileImage: profileImage
+            profileImage: profileImageFile // Send the actual file
         };
 
-        console.log('Submitting provider data:', submitData);
-        // TODO: Call API to register provider
-        // navigate('/provider/dashboard');
+        // Call the mutation
+        signup(submitData);
     };
 
     const progress = currentStep === 1 ? 50 : 100;
@@ -212,13 +219,23 @@ const ProviderSignup = () => {
                                     </div>
                                 )}
 
+                                {/* Error Message */}
+                                {isError && (
+                                    <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-2xl">
+                                        <p className="text-red-600 font-bold">
+                                            {error?.response?.data?.message || 'Registration failed. Please try again.'}
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Form Footer */}
                                 <div className="mt-8 pt-6 border-t border-gray-200 flex justify-between">
                                     {currentStep > 1 && (
                                         <button
                                             type="button"
                                             onClick={handleBack}
-                                            className="px-8 py-3.5 rounded-2xl bg-gray-100 text-gray-700 font-bold flex items-center gap-2 hover:bg-gray-200 transition-all"
+                                            disabled={isPending}
+                                            className="px-8 py-3.5 rounded-2xl bg-gray-100 text-gray-700 font-bold flex items-center gap-2 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <IoArrowBack size={20} />
                                             Back
@@ -226,11 +243,21 @@ const ProviderSignup = () => {
                                     )}
                                     <button
                                         type="submit"
-                                        className="px-8 py-3.5 rounded-2xl text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all ml-auto"
+                                        disabled={isPending}
+                                        className="px-8 py-3.5 rounded-2xl text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ background: 'linear-gradient(90deg, #155DFC 0%, #9810FA 100%)' }}
                                     >
-                                        {currentStep === 2 ? 'Complete Registration' : 'Next'}
-                                        <IoArrowForward size={20} />
+                                        {isPending ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                {currentStep === 2 ? 'Complete Registration' : 'Next'}
+                                                <IoArrowForward size={20} />
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </form>
