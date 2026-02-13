@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { IoCheckmarkCircle, IoStar, IoLocation, IoTime, IoBriefcase, IoSchool, IoGlobe, IoCalendar } from "react-icons/io5";
 
 const providers = [
@@ -197,10 +198,10 @@ const ProvidersList = () => {
                                         ))}
                                     </div>
 
-                                    <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2">
+                                    <Link to={`/providers/${provider.id}`} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2">
                                         <IoCalendar size={24} />
                                         Book with {provider.name}
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
