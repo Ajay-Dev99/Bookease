@@ -5,6 +5,7 @@ import UserLayout from './layouts/UserLayout';
 
 import CustomerLogin from './pages/CustomerLogin';
 import CustomerSignup from './pages/CustomerSignup';
+import ProvidersList from './pages/ProvidersList';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Routes>
         <Route element={<UserLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/providers" element={<ProvidersList />} />
         </Route>
         <Route path="/login/customer" element={<CustomerLogin />} />
         <Route path="/signup/customer" element={<CustomerSignup />} />
