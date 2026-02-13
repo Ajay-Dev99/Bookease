@@ -1,4 +1,4 @@
-import axiosInstance from '../../config/axios';
+import axiosInstance from '../../../config/axios';
 
 export const providerSignup = async (formData) => {
     const data = new FormData();

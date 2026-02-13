@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IoClose, IoArrowForward, IoArrowBack, IoAdd, IoTrash } from 'react-icons/io5';
-import { useCreateService } from '../../services/hooks/useProviderServices';
+import { useCreateService } from '../../services/hooks/Provider/useProviderServices';
 
 const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
     const { mutate: createService, isPending } = useCreateService();

@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { providerSignup, providerLogin, updateProviderProfile } from '../api/providerAuth';
+import { providerSignup, providerLogin, updateProviderProfile } from '../../api/Provider/providerAuth';
 import { useNavigate } from 'react-router-dom';
 
 export const useProviderSignup = () => {

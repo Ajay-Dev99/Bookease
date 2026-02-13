@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IoBook, IoArrowForward, IoArrowBack } from 'react-icons/io5';
-import RegistrationSteps from '../components/Provider/RegistrationSteps';
-import BasicInfoStep from '../components/Provider/BasicInfoStep';
-import AboutYouStep from '../components/Provider/AboutYouStep';
-import { useProviderSignup } from '../services/hooks/useProviderAuth';
+import RegistrationSteps from '../../components/Provider/RegistrationSteps';
+import BasicInfoStep from '../../components/Provider/BasicInfoStep';
+import AboutYouStep from '../../components/Provider/AboutYouStep';
+import { useProviderSignup } from '../../services/hooks/Provider/useProviderAuth';
 
 const ProviderSignup = () => {
     const [currentStep, setCurrentStep] = useState(1);

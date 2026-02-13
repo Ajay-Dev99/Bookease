@@ -1,22 +1,22 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import UserLayout from './layouts/UserLayout';
+import UserLayout from './layouts/User/UserLayout';
 
-import CustomerLogin from './pages/CustomerLogin';
-import CustomerSignup from './pages/CustomerSignup';
-import ProvidersList from './pages/ProvidersList';
-import ProviderServices from './pages/ProviderServices';
-import BookingSuccess from './pages/BookingSuccess';
-import BookingHistory from './pages/BookingHistory';
+import CustomerLogin from './pages/User/CustomerLogin';
+import CustomerSignup from './pages/User/CustomerSignup';
+import ProvidersList from './pages/User/ProvidersList';
+import ProviderServices from './pages/User/ProviderServices';
+import BookingSuccess from './pages/User/BookingSuccess';
+import BookingHistory from './pages/User/BookingHistory';
 
 // Provider imports
-import ProviderLayout from './layouts/ProviderLayout';
+import ProviderLayout from './layouts/Provider/ProviderLayout';
 import ProviderDashboard from './pages/provider/ProviderDashboard';
 import ProviderServicesPage from './pages/provider/ProviderServicesPage';
 import ProviderBookings from './pages/provider/ProviderBookings';
-import ProviderLogin from './pages/ProviderLogin';
-import ProviderSignup from './pages/ProviderSignup';
+import ProviderLogin from './pages/provider/ProviderLogin';
+import ProviderSignup from './pages/provider/ProviderSignup';
 
 function App() {
   return (

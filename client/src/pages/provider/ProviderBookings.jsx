@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useProviderBookings, useUpdateBookingStatus } from '../../services/hooks/useProviderBookings';
-import { useProviderServices } from '../../services/hooks/useProviderServices';
+import { useProviderBookings, useUpdateBookingStatus } from '../../services/hooks/Provider/useProviderBookings';
+import { useProviderServices } from '../../services/hooks/Provider/useProviderServices';
 import {
     IoCalendarOutline,
     IoTimeOutline,

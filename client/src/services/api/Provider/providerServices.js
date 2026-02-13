@@ -1,4 +1,4 @@
-import axiosInstance from '../../config/axios';
+import axiosInstance from '../../../config/axios';
 
 /**
  * Get all services for the logged-in provider

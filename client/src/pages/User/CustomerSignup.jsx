@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IoMail, IoLockClosed, IoEye, IoEyeOff, IoPerson, IoCall } from "react-icons/io5";
-import AuthLayout from '../components/Auth/AuthLayout';
+import AuthLayout from '../../components/Auth/AuthLayout';
+import { useUserSignup } from '../../services/hooks/User/useUserAuth';
 
 const CustomerSignup = () => {
+    const { mutate: signup, isPending, isError, error } = useUserSignup();
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         fullName: '',
@@ -13,6 +15,7 @@ const CustomerSignup = () => {
         confirmPassword: '',
         agreeToTerms: false
     });
+    const [validationError, setValidationError] = useState('');
 
     const features = [
         {
@@ -31,7 +34,26 @@ const CustomerSignup = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Signup attempt:', formData);
+        setValidationError('');
+
+        // Validate password match
+        if (formData.password !== formData.confirmPassword) {
+            setValidationError('Passwords do not match');
+            return;
+        }
+
+        // Validate password length
+        if (formData.password.length < 6) {
+            setValidationError('Password must be at least 6 characters');
+            return;
+        }
+
+        signup({
+            fullName: formData.fullName,
+            email: formData.email,
+            phoneNumber: formData.phone,
+            password: formData.password
+        });
     };
 
     return (
@@ -48,6 +70,14 @@ const CustomerSignup = () => {
 
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Error Messages */}
+                {(isError || validationError) && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-red-600 font-bold text-xs">
+                            {validationError || error?.response?.data?.message || 'Signup failed. Please try again.'}
+                        </p>
+                    </div>
+                )}
                 <div className="space-y-1.5">
                     <label className="text-xs font-bold text-gray-700 ml-1">Full Name</label>
                     <div className="relative group">
@@ -148,9 +178,17 @@ const CustomerSignup = () => {
 
                 <button
                     type="submit"
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all active:translate-y-0"
+                    disabled={isPending}
+                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Create Account
+                    {isPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Creating account...
+                        </span>
+                    ) : (
+                        'Create Account'
+                    )}
                 </button>
             </form>
 

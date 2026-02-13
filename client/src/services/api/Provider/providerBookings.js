@@ -1,4 +1,4 @@
-import axiosInstance from '../../config/axios';
+import axiosInstance from '../../../config/axios';
 
 /**
  * Get all bookings for the logged-in provider

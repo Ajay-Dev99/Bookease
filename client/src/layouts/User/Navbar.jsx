@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IoBook } from "react-icons/io5";
-import ModalWrapper from '../components/Common/ModalWrapper';
-import LoginModalContent from '../components/Auth/LoginModalContent';
+import ModalWrapper from '../../components/Common/ModalWrapper';
+import LoginModalContent from '../../components/Auth/LoginModalContent';
 
 const Navbar = () => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);

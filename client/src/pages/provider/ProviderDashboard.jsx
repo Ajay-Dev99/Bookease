@@ -1,5 +1,5 @@
 import React from 'react';
-import { useProviderReports } from '../../services/hooks/useProviderReports';
+import { useProviderReports } from '../../services/hooks/Provider/useProviderReports';
 import { IoCalendarOutline, IoCheckmarkCircle, IoCloseCircle, IoTimeOutline, IoTrendingUp } from 'react-icons/io5';
 
 const ProviderDashboard = () => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { IoTime, IoPricetag, IoArrowBack, IoStar, IoLocation, IoCheckmarkCircle } from "react-icons/io5";
-import BookingModal from '../components/Booking/BookingModal';
+import BookingModal from '../../components/Booking/BookingModal';
 
 // Mock data for providers (reused from ProvidersList for context)
 const providersData = [

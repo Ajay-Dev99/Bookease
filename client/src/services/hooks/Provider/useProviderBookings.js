@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProviderBookings, updateBookingStatus } from '../api/providerBookings';
+import { getProviderBookings, updateBookingStatus } from '../../api/Provider/providerBookings';
 
 /**
  * Hook to fetch provider's bookings with optional filters

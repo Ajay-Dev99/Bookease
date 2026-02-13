@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IoMail, IoLockClosed, IoEye, IoEyeOff } from "react-icons/io5";
-import AuthLayout from '../components/Auth/AuthLayout';
+import AuthLayout from '../../components/Auth/AuthLayout';
+import { useUserLogin } from '../../services/hooks/User/useUserAuth';
 
 const CustomerLogin = () => {
+    const { mutate: login, isPending, isError, error } = useUserLogin();
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
@@ -19,8 +21,7 @@ const CustomerLogin = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Handle login logic
-        console.log('Login attempt:', formData);
+        login({ email: formData.email, password: formData.password });
     };
 
     return (
@@ -37,6 +38,14 @@ const CustomerLogin = () => {
 
 
             <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Error Message */}
+                {isError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-red-600 font-bold text-xs">
+                            {error?.response?.data?.message || 'Login failed. Please check your credentials.'}
+                        </p>
+                    </div>
+                )}
                 <div className="space-y-1.5">
                     <label className="text-xs font-bold text-gray-700 ml-1">Email Address</label>
                     <div className="relative group">
@@ -91,9 +100,17 @@ const CustomerLogin = () => {
 
                 <button
                     type="submit"
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all active:translate-y-0"
+                    disabled={isPending}
+                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Sign In
+                    {isPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Signing in...
+                        </span>
+                    ) : (
+                        'Sign In'
+                    )}
                 </button>
             </form>
 

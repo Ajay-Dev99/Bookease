@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProviderServices, deleteService, toggleServiceStatus, createService } from '../api/providerServices';
+import { getProviderServices, deleteService, toggleServiceStatus, createService } from '../../api/Provider/providerServices';
 
 
 export const useProviderServices = () => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IoAdd, IoTrashOutline, IoPencilOutline, IoToggle, IoTimeOutline, IoCashOutline, IoCalendarOutline } from 'react-icons/io5';
-import { useProviderServices, useDeleteService, useToggleServiceStatus } from '../../services/hooks/useProviderServices';
+import { useProviderServices, useDeleteService, useToggleServiceStatus } from '../../services/hooks/Provider/useProviderServices';
 import CreateServiceModal from '../../components/Provider/CreateServiceModal';
 
 const ProviderServicesPage = () => {

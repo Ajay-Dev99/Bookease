@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoBook, IoEye, IoEyeOff, IoArrowForward } from 'react-icons/io5';
-import { useProviderLogin } from '../services/hooks/useProviderAuth';
+import { useProviderLogin } from '../../services/hooks/Provider/useProviderAuth';
 
 const ProviderLogin = () => {
     const navigate = useNavigate();
