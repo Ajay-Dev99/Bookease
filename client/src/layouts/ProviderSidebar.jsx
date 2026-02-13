@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { IoGrid, IoBriefcase, IoCalendar } from 'react-icons/io5';
+import { IoGrid, IoBriefcase, IoCalendar, IoLogOut } from 'react-icons/io5';
 
 const ProviderSidebar = () => {
     const location = useLocation();
@@ -26,9 +26,9 @@ const ProviderSidebar = () => {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <div className="fixed left-0 top-[84px] h-[calc(100vh-84px)] w-64 bg-white border-r border-gray-200 overflow-y-auto">
+        <div className="fixed left-0 top-[84px] h-[calc(100vh-84px)] w-64 bg-white border-r border-gray-200 flex flex-col">
             {/* Navigation Links */}
-            <div className="p-4 space-y-2">
+            <div className="p-4 space-y-2 flex-1 overflow-y-auto pb-20">
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.path);
@@ -50,7 +50,17 @@ const ProviderSidebar = () => {
                 })}
             </div>
 
+            {/* Logout Button - Fixed at Bottom */}
+            <div className="p-4 border-t border-gray-200 bg-white">
+                <Link
+                    to="/"
+                    className="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-base transition-all w-full text-red-600 hover:bg-red-50"
+                >
+                    <IoLogOut size={20} />
+                    Logout
+                </Link>
 
+            </div>
         </div>
     );
 };
