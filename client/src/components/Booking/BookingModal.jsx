@@ -1,66 +1,164 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack, IoChevronBack, IoChevronForward, IoCalendar, IoTime, IoPerson, IoClose } from "react-icons/io5";
+import { IoArrowBack, IoChevronBack, IoChevronForward, IoCalendar, IoTime, IoClose, IoAlertCircle } from "react-icons/io5";
+import axiosInstance from '../../config/axios';
 
 const BookingModal = ({ isOpen, onClose, provider, service }) => {
     const navigate = useNavigate();
 
-
-    const displayProvider = provider || {
-        name: "Service Provider",
-        type: "Medical Center",
-        image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=2070&auto=format&fit=crop"
-    };
-
-    const displayService = service || {
-        name: "Consultation",
-        price: 0,
-        duration: 30
-    };
-
-    const [selectedDate, setSelectedDate] = useState(""); // Default to 13th for demo
-    const [selectedTime, setSelectedTime] = useState("11:00 AM");
-    const [currentMonth, setCurrentMonth] = useState("February 2026");
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedTime, setSelectedTime] = useState(null);
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
+    const [isBooking, setIsBooking] = useState(false);
+    const [error, setError] = useState(null);
+    const [bookingError, setBookingError] = useState(null);
 
 
-    if (!isOpen) return null;
 
 
-    // Generate calendar days
-    const days = [
-        "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+
+
+    // Calendar generation logic
+    const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+
+    const currentYear = currentDate.getFullYear();
+    const currentMonthIndex = currentDate.getMonth();
+    const daysInMonth = getDaysInMonth(currentYear, currentMonthIndex);
+    const firstDay = getFirstDayOfMonth(currentYear, currentMonthIndex);
+
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
     ];
 
-    // Mock calendar generation (Feb 2026 starts on Sunday)
-    const calendarDays = Array.from({ length: 28 }, (_, i) => i + 1);
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-    const timeSlots = [
-        "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM",
-        "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
-        "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
-        "4:00 PM", "4:30 PM", "5:00 PM"
-    ];
+    // Fetch availability slots when date implies a specific day
+    useEffect(() => {
+        if (selectedDate && service?._id) {
+            fetchSlots(selectedDate);
+        } else {
+            setAvailableSlots([]);
+        }
+    }, [selectedDate, service]);
 
+    const fetchSlots = async (day, showLoading = true) => {
+        if (!day) return;
+        if (showLoading) {
+            setLoadingSlots(true);
+            setBookingError(null);
+        }
+        setError(null);
+        setSelectedTime(null);
 
-    const handleContinue = () => {
-        // Navigate to confirmation or next step
-        console.log("Booking confirmed:", {
-            provider: displayProvider,
-            service: displayService,
-            date: `February ${selectedDate}, 2026`,
-            time: selectedTime
-        });
+        try {
+            // Construct date string YYYY-MM-DD
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${dayStr}`;
 
-        onClose(); // Close the modal
-        navigate('/booking-success', {
-            state: {
-                provider: displayProvider,
-                service: displayService,
-                date: `February ${selectedDate}, 2026`,
-                time: selectedTime
+            const response = await axiosInstance.get(`/services/${service._id}/availability?date=${formattedDate}`);
+
+            if (response.data.status === 'success') {
+                setAvailableSlots(response.data.data.slots);
             }
-        });
+        } catch (err) {
+            console.error("Error fetching slots:", err);
+            setError("Failed to load time slots");
+            setAvailableSlots([]);
+        } finally {
+            setLoadingSlots(false);
+        }
     };
+
+    const handlePrevMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+        setSelectedDate(null);
+        setAvailableSlots([]);
+    };
+
+    const handleNextMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+        setSelectedDate(null);
+        setAvailableSlots([]);
+    };
+
+    const isDayDisabled = (day) => {
+        if (!day) return true;
+
+        // Disable past dates
+        const dateToCheck = new Date(currentYear, currentMonthIndex, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (dateToCheck < today) return true;
+
+        // Check service schedule if available
+        if (service?.schedule) {
+            const dayOfWeek = dateToCheck.getDay();
+            const dayName = days[dayOfWeek].toLowerCase();
+            const dayNamesFull = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const fullDayName = dayNamesFull[dayOfWeek];
+
+            if (service.schedule[fullDayName] && !service.schedule[fullDayName].isActive) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const handleContinue = async () => {
+        if (!selectedDate || !selectedTime) return;
+
+        setIsBooking(true);
+        setError(null);
+
+        try {
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(selectedDate).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${dayStr}`;
+
+            const response = await axiosInstance.post('/bookings', {
+                serviceId: service._id,
+                date: formattedDate,
+                time: selectedTime
+            });
+
+            if (response.data.status === 'success') {
+                onClose();
+                navigate('/booking-success', {
+                    state: {
+                        booking: response.data.data.booking,
+                        provider: provider,
+                        service: service,
+                        date: formattedDate,
+                        time: selectedTime
+                    }
+                });
+            }
+        } catch (err) {
+            console.error("Booking error:", err);
+            const errorMessage = err.response?.data?.message || "Failed to book appointment. Please try again.";
+
+            // If slot is already booked, refresh the list and show specific error
+            if (errorMessage.toLowerCase().includes("booked") || err.response?.status === 400) {
+                setBookingError("This slot was just booked. Please select another time.");
+                // Refresh slots to show updated availability (dimmed) without showing loading spinner
+                fetchSlots(selectedDate, false);
+            } else {
+                // For other errors (network, server), show the blocking error
+                setError(errorMessage);
+            }
+        } finally {
+            setIsBooking(false);
+        }
+    };
+
+    if (!isOpen || !provider || !service) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -74,32 +172,31 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
                     <IoClose size={24} />
                 </button>
 
-                {/* Header Section with Gradient */}
-                <div className="relative p-8 text-white" style={{ background: 'linear-gradient(165.72deg, #155DFC 0%, #9810FA 100%)' }}>
-
+                {/* Header Section */}
+                <div className="relative p-6 md:p-8 text-white" style={{ background: 'linear-gradient(165.72deg, #155DFC 0%, #9810FA 100%)' }}>
                     <div className="flex items-center gap-4 mb-6 pt-2">
                         <div className="w-16 h-16 rounded-full border-4 border-white/30 overflow-hidden shrink-0 bg-white">
-                            <img src={displayProvider.image || displayProvider.profileImage} alt={displayProvider.name} className="w-full h-full object-cover" />
+                            <img src={provider.profileImage} alt={provider.name} className="w-full h-full object-cover" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold">{displayProvider.name}</h1>
-                            <p className="text-blue-100">{displayProvider.type || displayProvider.about?.split('.')[0].substring(0, 30) || "Service Provider"}</p>
+                            <h1 className="text-2xl font-bold">{provider.name}</h1>
+                            <p className="text-blue-100">{provider.type || "Service Provider"}</p>
                         </div>
                     </div>
 
                     <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 flex justify-between items-center border border-white/10">
                         <div>
                             <p className="text-blue-100 text-sm mb-1">Selected Service</p>
-                            <p className="text-xl font-bold">{displayService.name}</p>
+                            <p className="text-xl font-bold">{service.name}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-blue-100 text-sm mb-1">{displayService.duration} min</p>
-                            <p className="text-2xl font-bold">${displayService.price}</p>
+                            <p className="text-blue-100 text-sm mb-1">{service.duration} min</p>
+                            <p className="text-2xl font-bold">${service.price}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Left Column: Select Date */}
                     <div>
                         <div className="flex items-center gap-2 mb-6">
@@ -110,11 +207,11 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
                         </div>
 
                         <div className="flex items-center justify-between mb-4">
-                            <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                            <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
                                 <IoChevronBack />
                             </button>
-                            <h3 className="font-bold text-lg text-gray-900">{currentMonth}</h3>
-                            <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                            <h3 className="font-bold text-lg text-gray-900">{monthNames[currentMonthIndex]} {currentYear}</h3>
+                            <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
                                 <IoChevronForward />
                             </button>
                         </div>
@@ -126,21 +223,30 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
                                 ))}
                             </div>
                             <div className="grid grid-cols-7 gap-y-2">
-                                {calendarDays.map(day => {
-                                    const isSelected = day === selectedDate;
-                                    const isToday = day === 1; // Simulation
+                                {/* Empty cells for start of month */}
+                                {Array.from({ length: firstDay }).map((_, i) => (
+                                    <div key={`empty-${i}`} className="h-10"></div>
+                                ))}
+
+                                {/* Days of month */}
+                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                    const day = i + 1;
+                                    const isDisabled = isDayDisabled(day);
+                                    const isSelected = selectedDate === day;
 
                                     return (
                                         <div key={day} className="flex justify-center">
                                             <button
-                                                onClick={() => setSelectedDate(day)}
+                                                onClick={() => !isDisabled && setSelectedDate(day)}
+                                                disabled={isDisabled}
                                                 className={`
                                                     w-10 h-10 rounded-xl flex items-center justify-center text-sm font-medium transition-all
-                                                    ${isSelected
-                                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
-                                                        : 'text-gray-700 hover:bg-white hover:shadow-sm'
+                                                    ${isDisabled
+                                                        ? 'text-gray-300 cursor-not-allowed bg-gray-100'
+                                                        : isSelected
+                                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
+                                                            : 'text-gray-700 hover:bg-white hover:shadow-sm cursor-pointer'
                                                     }
-                                                    ${isToday && !isSelected ? 'border border-blue-200 text-blue-600' : ''}
                                                 `}
                                                 style={isSelected ? { background: 'linear-gradient(135deg, #155DFC 0%, #9810FA 100%)' } : {}}
                                             >
@@ -152,10 +258,14 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
                             </div>
                         </div>
 
-                        <div className="mt-4 bg-blue-50 rounded-xl p-4 flex justify-between items-center">
-                            <span className="text-gray-600 text-sm">Selected Date:</span>
-                            <span className="font-bold text-gray-900">Friday, February {selectedDate}, 2026</span>
-                        </div>
+                        {selectedDate && (
+                            <div className="mt-4 bg-blue-50 rounded-xl p-4 flex justify-between items-center animate-in fade-in slide-in-from-top-2">
+                                <span className="text-gray-600 text-sm">Selected:</span>
+                                <span className="font-bold text-blue-900">
+                                    {monthNames[currentMonthIndex]} {selectedDate}, {currentYear}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Right Column: Select Time */}
@@ -167,68 +277,127 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
                             <h2 className="text-xl font-bold text-gray-900">Select Time</h2>
                         </div>
 
-                        <div className="bg-gray-50 rounded-2xl p-4 flex-1 flex flex-col">
-                            <p className="text-sm text-gray-500 mb-4">Available slots:</p>
-                            <div className="grid grid-cols-2 gap-3 overflow-y-auto max-h-[220px] pr-2 custom-scrollbar">
-                                {timeSlots.map((time) => {
-                                    const isSelected = time === selectedTime;
-                                    return (
-                                        <button
-                                            key={time}
-                                            onClick={() => setSelectedTime(time)}
-                                            className={`
-                                                py-3 rounded-xl text-sm font-medium transition-all
-                                                ${isSelected
-                                                    ? 'text-white shadow-lg shadow-blue-200 transform scale-[1.02]'
-                                                    : 'bg-white text-gray-700 hover:shadow-md'
-                                                }
-                                            `}
-                                            style={isSelected ? { background: 'linear-gradient(165deg, #155DFC 0%, #9810FA 100%)' } : {}}
-                                        >
-                                            {time}
-                                        </button>
-                                    );
-                                })}
+                        {bookingError && (
+                            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                                <IoAlertCircle className="text-xl shrink-0" />
+                                {bookingError}
                             </div>
+                        )}
+
+                        <div className="bg-gray-50 rounded-2xl p-4 flex-1 flex flex-col min-h-[300px]">
+                            {!selectedDate ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                                    <IoCalendar className="text-4xl mb-2 opacity-50" />
+                                    <p>Select a date to view available times</p>
+                                </div>
+                            ) : loadingSlots ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-blue-500">
+                                    <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin mb-2"></div>
+                                    <p className="text-sm font-medium">Loading slots...</p>
+                                </div>
+                            ) : error ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-red-500">
+                                    <IoAlertCircle className="text-4xl mb-2 opacity-80" />
+                                    <p className="text-sm">{error}</p>
+                                    <button
+                                        onClick={() => fetchSlots(selectedDate)}
+                                        className="mt-2 text-xs bg-red-50 px-3 py-1 rounded-full hover:bg-red-100 transition-colors"
+                                    >
+                                        Try Again
+                                    </button>
+                                </div>
+                            ) : availableSlots.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+                                    <p>No available slots for this date.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-gray-500 mb-4">Available slots:</p>
+                                    <div className="grid grid-cols-2 gap-3 overflow-y-auto max-h-[220px] pr-2 custom-scrollbar">
+                                        {availableSlots.map((slot) => {
+                                            const isSelected = slot.time === selectedTime;
+                                            const disabled = !slot.available;
+
+                                            return (
+                                                <button
+                                                    key={slot.time}
+                                                    onClick={() => {
+                                                        if (!disabled) {
+                                                            setSelectedTime(slot.time);
+                                                            setBookingError(null);
+                                                        }
+                                                    }}
+                                                    disabled={disabled}
+                                                    className={`
+                                                        py-3 rounded-xl text-sm font-medium transition-all
+                                                        ${disabled
+                                                            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                                            : isSelected
+                                                                ? 'text-white shadow-lg shadow-blue-200 transform scale-[1.02]'
+                                                                : 'bg-white text-gray-700 hover:shadow-md hover:border-blue-200 border border-transparent'
+                                                        }
+                                                    `}
+                                                    style={isSelected ? { background: 'linear-gradient(165deg, #155DFC 0%, #9810FA 100%)' } : {}}
+                                                >
+                                                    {slot.time}
+                                                    {disabled && <span className="block text-[10px] font-normal">Booked</span>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
                         </div>
 
-                        <div className="mt-4 bg-purple-50 rounded-xl p-4 flex justify-between items-center">
-                            <span className="text-gray-600 text-sm">Selected Time:</span>
-                            <span className="font-bold text-gray-900">{selectedTime}</span>
-                        </div>
+                        {selectedTime && (
+                            <div className="mt-4 bg-purple-50 rounded-xl p-4 flex justify-between items-center animate-in fade-in slide-in-from-top-2">
+                                <span className="text-gray-600 text-sm">Selected Time:</span>
+                                <span className="font-bold text-purple-900">{selectedTime}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Footer / Summary Section */}
-                <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-t border-blue-100 p-8">
-                    <h4 className="font-bold text-gray-900 text-lg mb-4">Booking Summary</h4>
-
-                    <div className="flex flex-col md:flex-row gap-6 justify-between mb-8">
-                        <div className="space-y-2">
-                            <p className="text-gray-600"><span className="font-bold text-gray-900">Provider:</span> {displayProvider.name}</p>
-                            <p className="text-gray-600"><span className="font-bold text-gray-900">Duration:</span> {displayService.duration} min</p>
+                {/* Footer */}
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-t border-blue-100 p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row gap-6 justify-between mb-6">
+                        <div className="space-y-1">
+                            <p className="text-sm text-gray-500">Provider & Service</p>
+                            <p className="text-gray-900 font-medium">{provider.name} • {service.name}</p>
                         </div>
-                        <div className="space-y-2">
-                            <p className="text-gray-600"><span className="font-bold text-gray-900">Date:</span> Friday, February {selectedDate}, 2026</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className="font-bold text-gray-900 text-xl">Total:</span>
-                                <span className="text-2xl font-bold text-blue-600">${displayService.price}</span>
-                            </div>
+                        <div className="space-y-1 text-right">
+                            <p className="text-sm text-gray-500">Total Price</p>
+                            <p className="text-2xl font-bold text-blue-600">${service.price}</p>
                         </div>
                     </div>
 
                     <button
                         onClick={handleContinue}
-                        className="w-full py-4 rounded-full text-white font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2"
+                        disabled={!selectedDate || !selectedTime || isBooking}
+                        className={`
+                            w-full py-4 rounded-full text-white font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all duration-300
+                            ${!selectedDate || !selectedTime || isBooking
+                                ? 'opacity-50 cursor-not-allowed grayscale'
+                                : 'hover:shadow-xl hover:-translate-y-0.5'
+                            }
+                        `}
                         style={{ background: 'linear-gradient(90deg, #155DFC 0%, #9810FA 100%)' }}
                     >
-                        Continue to Confirmation
-                        <IoArrowBack className="rotate-180" />
+                        {isBooking ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Processing...
+                            </>
+                        ) : (
+                            <>
+                                Confirm Booking
+                                <IoArrowBack className="rotate-180" />
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
 
-            {/* Custom Scrollbar Styles */}
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 6px;

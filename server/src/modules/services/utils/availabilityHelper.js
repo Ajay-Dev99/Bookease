@@ -11,6 +11,13 @@ const Booking = require('../../bookings/model/bookingModel');
  */
 async function getAvailableSlots(serviceId, date) {
     try {
+        // Create clean copies for query boundaries (UTC Day)
+        const startOfDay = new Date(date);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
+
         // Get the service
         const service = await Service.findById(serviceId);
         if (!service || !service.isActive) {
@@ -36,8 +43,8 @@ async function getAvailableSlots(serviceId, date) {
         const customAvailability = await CustomAvailability.findOne({
             service: serviceId,
             date: {
-                $gte: new Date(date.setHours(0, 0, 0, 0)),
-                $lt: new Date(date.setHours(23, 59, 59, 999))
+                $gte: startOfDay,
+                $lt: endOfDay
             }
         });
 
@@ -50,8 +57,8 @@ async function getAvailableSlots(serviceId, date) {
         const blockedDates = await BlockedDate.find({
             service: serviceId,
             date: {
-                $gte: new Date(date.setHours(0, 0, 0, 0)),
-                $lt: new Date(date.setHours(23, 59, 59, 999))
+                $gte: startOfDay,
+                $lt: endOfDay
             }
         });
 
@@ -73,8 +80,8 @@ async function getAvailableSlots(serviceId, date) {
         const existingBookings = await Booking.find({
             service: serviceId,
             date: {
-                $gte: new Date(date.setHours(0, 0, 0, 0)),
-                $lt: new Date(date.setHours(23, 59, 59, 999))
+                $gte: startOfDay,
+                $lt: endOfDay
             },
             status: { $ne: 'cancelled' }
         });
