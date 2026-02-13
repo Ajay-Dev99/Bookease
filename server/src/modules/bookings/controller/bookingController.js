@@ -242,3 +242,61 @@ exports.getMyAppointments = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.getProviderStats = async (req, res, next) => {
+    try {
+        const providerId = req.user._id;
+
+        const stats = await Booking.aggregate([
+            {
+                $match: { provider: providerId }
+            },
+            {
+                $facet: {
+                    // 1. Total Appointments & Status Counts
+                    statusCounts: [
+                        {
+                            $group: {
+                                _id: '$status',
+                                count: { $sum: 1 }
+                            }
+                        }
+                    ],
+                    // 2. Busiest Hours
+                    busiestTimes: [
+                        {
+                            $group: {
+                                _id: '$startTime',
+                                count: { $sum: 1 }
+                            }
+                        },
+                        { $sort: { count: -1 } },
+                        { $limit: 5 } // Top 5 busiest slots
+                    ]
+                }
+            }
+        ]);
+
+        // Transform data for easier consumption
+        const statusData = stats[0].statusCounts.reduce((acc, curr) => {
+            acc[curr._id] = curr.count;
+            return acc;
+        }, {});
+
+        const totalAppointments = Object.values(statusData).reduce((a, b) => a + b, 0);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                totalAppointments,
+                completed: statusData.completed || 0,
+                cancelled: statusData.cancelled || 0,
+                booked: statusData.booked || 0,
+                busiestTimes: stats[0].busiestTimes
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};

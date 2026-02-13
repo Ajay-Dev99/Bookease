@@ -1,10 +1,16 @@
 const express = require('express');
 const bookingController = require('../controller/bookingController');
-const { protect } = require('../../../middleware/authMiddleware');
+// User Auth Middleware
+const { protect, protectProvider } = require('../../../middleware/authMiddleware');
 
 const router = express.Router();
 
-// All routes are protected
+// -- Provider Routes (Specific) --
+router.get('/provider-stats', protectProvider, bookingController.getProviderStats);
+
+
+// -- User Routes (General) --
+// All routes below are protected for Users
 router.use(protect);
 
 // Get My Appointments
