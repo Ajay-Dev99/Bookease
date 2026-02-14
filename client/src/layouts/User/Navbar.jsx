@@ -1,11 +1,32 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { IoBook } from "react-icons/io5";
 import ModalWrapper from '../../components/Common/ModalWrapper';
 import LoginModalContent from '../../components/Auth/LoginModalContent';
 
 const Navbar = () => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [user, setUser] = useState(null);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem('user');
+        const userType = localStorage.getItem('userType');
+        if (storedUser && userType === 'customer') {
+            setUser(JSON.parse(storedUser));
+        } else {
+            setUser(null);
+        }
+    }, [location]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userType');
+        setUser(null);
+        navigate('/');
+    };
 
     return (
         <>
@@ -35,18 +56,29 @@ const Navbar = () => {
                         </div>
 
                         <div className="hidden md:flex items-center gap-4">
-                            <button
-                                onClick={() => setIsLoginModalOpen(true)}
-                                className="text-blue-600 font-medium hover:text-blue-700 transition-colors cursor-pointer"
-                            >
-                                Login
-                            </button>
-                            <Link
-                                to="/signup"
-                                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full hover:shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5"
-                            >
-                                Get Started
-                            </Link>
+                            {user ? (
+                                <button
+                                    onClick={handleLogout}
+                                    className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-full hover:shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                                >
+                                    Logout
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setIsLoginModalOpen(true)}
+                                        className="text-blue-600 font-medium hover:text-blue-700 transition-colors cursor-pointer"
+                                    >
+                                        Login
+                                    </button>
+                                    <Link
+                                        to="/signup"
+                                        className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full hover:shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5"
+                                    >
+                                        Get Started
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

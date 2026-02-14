@@ -54,6 +54,11 @@ const ProviderSidebar = () => {
             <div className="p-4 border-t border-gray-200 bg-white">
                 <Link
                     to="/"
+                    onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        localStorage.removeItem('userType');
+                    }}
                     className="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-base transition-all w-full text-red-600 hover:bg-red-50"
                 >
                     <IoLogOut size={20} />
