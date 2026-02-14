@@ -11,6 +11,7 @@ const ProviderServicesPage = () => {
     const [deletingId, setDeletingId] = useState(null);
     const [togglingId, setTogglingId] = useState(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [serviceToEdit, setServiceToEdit] = useState(null);
 
     const handleDelete = (serviceId) => {
         if (window.confirm('Are you sure you want to delete this service?')) {
@@ -21,6 +22,11 @@ const ProviderServicesPage = () => {
         }
     };
 
+    const handleEdit = (service) => {
+        setServiceToEdit(service);
+        setIsCreateModalOpen(true);
+    };
+
     const handleToggleStatus = (serviceId, currentStatus) => {
         setTogglingId(serviceId);
         toggleStatus(
@@ -29,8 +35,13 @@ const ProviderServicesPage = () => {
         );
     };
 
-    const handleCreateSuccess = () => {
+    const handleModalClose = () => {
         setIsCreateModalOpen(false);
+        setServiceToEdit(null);
+    };
+
+    const handleCreateSuccess = () => {
+        handleModalClose();
     };
 
     if (isLoading) {
@@ -91,6 +102,7 @@ const ProviderServicesPage = () => {
                                 </span>
                                 <div className="flex gap-2">
                                     <button
+                                        onClick={() => handleEdit(service)}
                                         className="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center text-blue-600 transition-colors"
                                         title="Edit service"
                                     >
@@ -199,8 +211,9 @@ const ProviderServicesPage = () => {
             {/* Create Service Modal */}
             <CreateServiceModal
                 isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
+                onClose={handleModalClose}
                 onSuccess={handleCreateSuccess}
+                serviceToEdit={serviceToEdit}
             />
         </div>
     );

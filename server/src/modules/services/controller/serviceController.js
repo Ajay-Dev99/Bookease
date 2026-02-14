@@ -153,7 +153,17 @@ exports.updateService = async (req, res, next) => {
         const allowedUpdates = ['name', 'description', 'duration', 'price', 'schedule', 'slotDuration', 'maxBookingsPerSlot', 'isActive'];
         allowedUpdates.forEach(update => {
             if (req.body[update] !== undefined) {
-                service[update] = req.body[update];
+                // Parse schedule if it's a string (which it will be if sent via FormData)
+                if (update === 'schedule' && typeof req.body[update] === 'string') {
+                    try {
+                        service[update] = JSON.parse(req.body[update]);
+                    } catch (e) {
+                        // If parsing fails, it might be raw object or invalid, let mongoose validation handle or throw error
+                        console.error("Error parsing schedule JSON", e);
+                    }
+                } else {
+                    service[update] = req.body[update];
+                }
             }
         });
 
@@ -164,9 +174,24 @@ exports.updateService = async (req, res, next) => {
         }
 
         // Handle image removal
+        // Handle image removal
         if (req.body.removeImages) {
             let removeList = req.body.removeImages;
-            if (typeof removeList === 'string') removeList = [removeList];
+            // Check if it's a string that needs parsing (e.g. "[\"url1\", \"url2\"]")
+            if (typeof removeList === 'string') {
+                try {
+                    const parsed = JSON.parse(removeList);
+                    if (Array.isArray(parsed)) {
+                        removeList = parsed;
+                    } else {
+                        // If it's a simple string (one url), wrap in array
+                        removeList = [removeList];
+                    }
+                } catch (e) {
+                    // If not JSON, treat as single string URL
+                    removeList = [removeList];
+                }
+            }
             service.images = service.images.filter(img => !removeList.includes(img));
         }
 

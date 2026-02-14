@@ -69,3 +69,65 @@ export const createService = async (serviceData, imageFiles, blockedDates) => {
 
     return response.data;
 };
+
+
+export const updateService = async ({ serviceId, serviceData, imageFiles }) => {
+    const formData = new FormData();
+
+    // Add basic service data if present
+    if (serviceData.name) formData.append('name', serviceData.name);
+    if (serviceData.description) formData.append('description', serviceData.description);
+    if (serviceData.duration) formData.append('duration', serviceData.duration);
+    if (serviceData.price) formData.append('price', serviceData.price);
+    if (serviceData.slotDuration) formData.append('slotDuration', serviceData.slotDuration);
+    if (serviceData.maxBookingsPerSlot) formData.append('maxBookingsPerSlot', serviceData.maxBookingsPerSlot);
+
+    // Add schedule as JSON string if present
+    if (serviceData.schedule) {
+        formData.append('schedule', JSON.stringify(serviceData.schedule));
+    }
+
+    // Add new images if any
+    if (imageFiles && imageFiles.length > 0) {
+        imageFiles.forEach((file) => {
+            formData.append('images', file);
+        });
+    }
+
+    // Add removed images list if any
+    if (serviceData.removeImages && serviceData.removeImages.length > 0) {
+        formData.append('removeImages', JSON.stringify(serviceData.removeImages));
+    }
+
+    const response = await axiosInstance.patch(`/services/${serviceId}`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+
+    return response.data;
+};
+
+/**
+ * Add a blocked date to a service
+ */
+export const addBlockedDate = async (serviceId, blockedDateData) => {
+    const response = await axiosInstance.post(`/services/${serviceId}/blocked-dates`, blockedDateData);
+    return response.data;
+};
+
+/**
+ * Remove a blocked date from a service
+ */
+export const removeBlockedDate = async (serviceId, blockId) => {
+    const response = await axiosInstance.delete(`/services/${serviceId}/blocked-dates/${blockId}`);
+    return response.data;
+};
+
+/**
+ * Get blocked dates for a service
+ */
+export const getBlockedDates = async (serviceId) => {
+    const response = await axiosInstance.get(`/services/${serviceId}/blocked-dates`);
+    return response.data;
+};

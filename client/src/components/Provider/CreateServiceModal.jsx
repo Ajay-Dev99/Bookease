@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoClose, IoArrowForward, IoArrowBack, IoAdd, IoTrash } from 'react-icons/io5';
-import { useCreateService } from '../../services/hooks/Provider/useProviderServices';
+import { useCreateService, useUpdateService, useAddBlockedDate, useRemoveBlockedDate, useGetBlockedDates } from '../../services/hooks/Provider/useProviderServices';
 
-const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
-    const { mutate: createService, isPending } = useCreateService();
+const ServiceModal = ({ isOpen, onClose, onSuccess, serviceToEdit = null }) => {
+    const { mutate: createService, isPending: isCreating } = useCreateService();
+    const { mutate: updateService, isPending: isUpdating } = useUpdateService();
+
+    // Hooks for managing blocked dates in Edit Mode
+    const { mutate: addBlockedDateApi, isPending: isAddingDate } = useAddBlockedDate();
+    const { mutate: removeBlockedDateApi, isPending: isRemovingDate } = useRemoveBlockedDate();
+    const { data: serverBlockedDates, isLoading: isLoadingDates } = useGetBlockedDates(serviceToEdit?._id);
+
+    const isEditMode = !!serviceToEdit;
+    const isPending = isCreating || isUpdating;
+
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
         // Step 1: Basic Info
@@ -26,11 +36,13 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
         slotDuration: '30',
         maxBookingsPerSlot: '1',
 
-        // Step 3: Blocked Dates (Holidays)
+        // Step 3: Blocked Dates (Create Mode only)
         blockedDates: []
     });
 
     const [imageFiles, setImageFiles] = useState([]);
+    const [existingImages, setExistingImages] = useState([]); // For edit mode
+    const [removedImages, setRemovedImages] = useState([]); // Track removed existing images
     const [newBlockedDate, setNewBlockedDate] = useState({
         date: '',
         reason: '',
@@ -38,6 +50,52 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
         startTime: '',
         endTime: ''
     });
+
+    // Populate form data when editing
+    useEffect(() => {
+        if (serviceToEdit) {
+            setFormData({
+                name: serviceToEdit.name || '',
+                description: serviceToEdit.description || '',
+                duration: serviceToEdit.duration || '',
+                price: serviceToEdit.price || '',
+                images: [], // New images start empty
+                schedule: serviceToEdit.schedule || formData.schedule,
+                slotDuration: serviceToEdit.slotDuration || '30',
+                maxBookingsPerSlot: serviceToEdit.maxBookingsPerSlot || '1',
+                blockedDates: [] // Not used in edit mode (we use serverBlockedDates)
+            });
+            setExistingImages(serviceToEdit.images || []);
+            setRemovedImages([]);
+            // Reset step to 1 when opening a new edit
+            setCurrentStep(1);
+        } else {
+            // Reset for create mode
+            setFormData({
+                name: '',
+                description: '',
+                duration: '',
+                price: '',
+                images: [],
+                schedule: {
+                    monday: { isActive: false, startTime: '09:00', endTime: '17:00' },
+                    tuesday: { isActive: false, startTime: '09:00', endTime: '17:00' },
+                    wednesday: { isActive: false, startTime: '09:00', endTime: '17:00' },
+                    thursday: { isActive: false, startTime: '09:00', endTime: '17:00' },
+                    friday: { isActive: false, startTime: '09:00', endTime: '17:00' },
+                    saturday: { isActive: false, startTime: '09:00', endTime: '17:00' },
+                    sunday: { isActive: false, startTime: '09:00', endTime: '17:00' },
+                },
+                slotDuration: '30',
+                maxBookingsPerSlot: '1',
+                blockedDates: []
+            });
+            setExistingImages([]);
+            setRemovedImages([]);
+            setImageFiles([]);
+            setCurrentStep(1);
+        }
+    }, [serviceToEdit, isOpen]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -75,24 +133,20 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        setImageFiles(prev => [...prev, ...files].slice(0, 5)); // Max 5 images
+        setImageFiles(prev => [...prev, ...files].slice(0, 5)); // Max 5 images total (simplification)
     };
 
     const removeImage = (index) => {
         setImageFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const addBlockedDate = () => {
-        if (!newBlockedDate.date) {
-            alert('Please select a date');
-            return;
-        }
+    const handleRemoveExistingImage = (imageUrl) => {
+        setRemovedImages(prev => [...prev, imageUrl]);
+        setExistingImages(prev => prev.filter(img => img !== imageUrl));
+    };
 
-        setFormData(prev => ({
-            ...prev,
-            blockedDates: [...prev.blockedDates, { ...newBlockedDate }]
-        }));
-
+    // Helper to reset blocked date inputs
+    const resetBlockedDateInput = () => {
         setNewBlockedDate({
             date: '',
             reason: '',
@@ -102,11 +156,46 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
         });
     };
 
-    const removeBlockedDate = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            blockedDates: prev.blockedDates.filter((_, i) => i !== index)
-        }));
+    const handleAddBlockedDate = () => {
+        if (!newBlockedDate.date) {
+            alert('Please select a date');
+            return;
+        }
+
+        if (isEditMode) {
+            // In Edit Mode, call API immediately
+            addBlockedDateApi({
+                serviceId: serviceToEdit._id,
+                blockedDateData: newBlockedDate
+            }, {
+                onSuccess: () => resetBlockedDateInput(),
+                onError: (err) => alert(err.response?.data?.message || 'Failed to add blocked date')
+            });
+        } else {
+            // In Create Mode, add to state
+            setFormData(prev => ({
+                ...prev,
+                blockedDates: [...prev.blockedDates, { ...newBlockedDate }]
+            }));
+            resetBlockedDateInput();
+        }
+    };
+
+    const handleRemoveBlockedDate = (index, blockId) => {
+        if (isEditMode) {
+            // In Edit Mode, call API immediately with blockId
+            if (window.confirm('Are you sure you want to remove this blocked date?')) {
+                removeBlockedDateApi({ serviceId: serviceToEdit._id, blockId }, {
+                    onError: (err) => alert('Failed to remove blocked date')
+                });
+            }
+        } else {
+            // In Create Mode, remove from state by index
+            setFormData(prev => ({
+                ...prev,
+                blockedDates: prev.blockedDates.filter((_, i) => i !== index)
+            }));
+        }
     };
 
     const validateStep1 = () => {
@@ -142,27 +231,56 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     const handleSubmit = async () => {
-        createService(
-            {
-                serviceData: formData,
-                imageFiles,
-                blockedDates: formData.blockedDates
-            },
-            {
-                onSuccess: () => {
-                    alert('Service created successfully!');
-                    onSuccess?.();
+        if (isEditMode) {
+            updateService(
+                {
+                    serviceId: serviceToEdit._id,
+                    serviceData: {
+                        ...formData,
+                        removeImages: removedImages
+                    },
+                    imageFiles
                 },
-                onError: (error) => {
-                    alert(error?.response?.data?.message || 'Failed to create service. Please try again.');
+                {
+                    onSuccess: () => {
+                        alert('Service updated successfully!');
+                        onSuccess?.();
+                        onClose();
+                    },
+                    onError: (error) => {
+                        alert(error?.response?.data?.message || 'Failed to update service. Please try again.');
+                    }
                 }
-            }
-        );
+            );
+        } else {
+            createService(
+                {
+                    serviceData: formData,
+                    imageFiles,
+                    blockedDates: formData.blockedDates
+                },
+                {
+                    onSuccess: () => {
+                        alert('Service created successfully!');
+                        onSuccess?.();
+                        onClose();
+                    },
+                    onError: (error) => {
+                        alert(error?.response?.data?.message || 'Failed to create service. Please try again.');
+                    }
+                }
+            );
+        }
     };
 
     if (!isOpen) return null;
 
     const progress = (currentStep / 3) * 100;
+
+    // Determine which blocked dates list to show
+    const displayBlockedDates = isEditMode
+        ? (serverBlockedDates?.data?.blockedDates || [])
+        : formData.blockedDates;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -170,7 +288,7 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-3xl font-bold">Create New Service</h2>
+                        <h2 className="text-3xl font-bold">{isEditMode ? 'Edit Service' : 'Create New Service'}</h2>
                         <button
                             onClick={onClose}
                             className="w-10 h-10 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 flex items-center justify-center transition-all"
@@ -268,6 +386,28 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
                                     Service Images (Max 5)
                                 </label>
+
+                                {/* Show existing images if in edit mode */}
+                                {isEditMode && existingImages.length > 0 && (
+                                    <div className="mb-4">
+                                        <p className="text-xs text-gray-500 mb-2">Existing Images:</p>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {existingImages.map((img, idx) => (
+                                                <div key={idx} className="relative group">
+                                                    <img src={img} alt="Existing" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                                                    <button
+                                                        onClick={() => handleRemoveExistingImage(img)}
+                                                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        title="Remove image"
+                                                    >
+                                                        <IoClose size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -281,7 +421,7 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
                                     className="block w-full px-4 py-8 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer text-center transition-colors"
                                 >
                                     <IoAdd size={32} className="mx-auto text-gray-400 mb-2" />
-                                    <span className="text-gray-600">Click to upload images</span>
+                                    <span className="text-gray-600">Click to upload new images</span>
                                 </label>
 
                                 {imageFiles.length > 0 && (
@@ -388,6 +528,7 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
                                 <h3 className="text-lg font-bold text-gray-900 mb-4">Block Dates (Optional)</h3>
                                 <p className="text-sm text-gray-600 mb-4">
                                     Block specific dates when this service won't be available (holidays, vacations, etc.)
+                                    {isEditMode && <span className="font-bold block text-blue-600 mt-1">Changes here are saved immediately.</span>}
                                 </p>
 
                                 <div className="bg-gray-50 p-4 rounded-xl space-y-4">
@@ -460,20 +601,34 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
                                     )}
 
                                     <button
-                                        onClick={addBlockedDate}
-                                        className="w-full px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                        onClick={handleAddBlockedDate}
+                                        disabled={isAddingDate}
+                                        className="w-full px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
-                                        <IoAdd size={20} />
-                                        Add Blocked Date
+                                        {isAddingDate ? (
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <IoAdd size={20} />
+                                                Add Blocked Date
+                                            </>
+                                        )}
                                     </button>
                                 </div>
 
                                 {/* Blocked Dates List */}
-                                {formData.blockedDates.length > 0 && (
-                                    <div className="mt-6">
-                                        <h4 className="font-bold text-gray-900 mb-3">Blocked Dates ({formData.blockedDates.length})</h4>
+                                <div className="mt-6">
+                                    <h4 className="font-bold text-gray-900 mb-3">Blocked Dates ({displayBlockedDates.length})</h4>
+
+                                    {isEditMode && isLoadingDates ? (
+                                        <div className="flex justify-center p-4">
+                                            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    ) : (
                                         <div className="space-y-2">
-                                            {formData.blockedDates.map((blocked, index) => (
+                                            {displayBlockedDates.length === 0 && <p className="text-gray-500 text-sm">No blocked dates scheduled.</p>}
+
+                                            {displayBlockedDates.map((blocked, index) => (
                                                 <div key={index} className="flex items-center justify-between p-4 bg-red-50 border-2 border-red-200 rounded-xl">
                                                     <div>
                                                         <p className="font-bold text-gray-900">
@@ -490,16 +645,17 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
                                                         </p>
                                                     </div>
                                                     <button
-                                                        onClick={() => removeBlockedDate(index)}
-                                                        className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                                                        onClick={() => handleRemoveBlockedDate(index, blocked._id)} // Pass _id for remote delete
+                                                        disabled={isRemovingDate}
+                                                        className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
                                                     >
                                                         <IoTrash size={16} />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -524,11 +680,11 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
                         {isPending ? (
                             <>
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Creating...
+                                {isEditMode ? 'Updating...' : 'Creating...'}
                             </>
                         ) : (
                             <>
-                                {currentStep === 3 ? 'Create Service' : 'Next'}
+                                {currentStep === 3 ? (isEditMode ? 'Save Changes' : 'Create Service') : 'Next'}
                                 <IoArrowForward size={20} />
                             </>
                         )}
@@ -539,4 +695,4 @@ const CreateServiceModal = ({ isOpen, onClose, onSuccess }) => {
     );
 };
 
-export default CreateServiceModal;
+export default ServiceModal;

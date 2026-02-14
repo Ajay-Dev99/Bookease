@@ -20,6 +20,8 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
 
 
 
+    const [blockedDates, setBlockedDates] = useState([]);
+
     // Calendar generation logic
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
@@ -35,14 +37,56 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
 
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+    // Fetch blocked dates
+    useEffect(() => {
+        if (service?._id) {
+            axiosInstance.get(`/services/${service._id}/blocked-dates`)
+                .then(res => {
+                    setBlockedDates(res.data.data.blockedDates);
+                })
+                .catch(err => console.error("Error fetching blocked dates:", err));
+        }
+    }, [service]);
+
+    // Helper to get blocked info for a specific day
+    const getBlockedInfo = (day) => {
+        if (!day) return null;
+
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(day).padStart(2, '0');
+        const cellDateStr = `${year}-${month}-${dayStr}`;
+
+        const found = blockedDates.find(b => {
+            return b.date && b.date.startsWith(cellDateStr);
+        });
+
+        if (found) {
+            return {
+                ...found,
+                isFullDay: !found.startTime && !found.endTime
+            };
+        }
+        return null;
+    };
+
     // Fetch availability slots when date implies a specific day
     useEffect(() => {
         if (selectedDate && service?._id) {
+            const blockedInfo = getBlockedInfo(selectedDate);
+            // If fully blocked, don't fetch slots
+            if (blockedInfo?.isFullDay) {
+                setAvailableSlots([]);
+                setSelectedTime(null);
+                setBookingError(null);
+                setError(null);
+                return;
+            }
             fetchSlots(selectedDate);
         } else {
             setAvailableSlots([]);
         }
-    }, [selectedDate, service]);
+    }, [selectedDate, service, blockedDates, currentMonthIndex, currentYear]); // Added dependencies
 
     const fetchSlots = async (day, showLoading = true) => {
         if (!day) return;
@@ -99,14 +143,14 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
         // Check service schedule if available
         if (service?.schedule) {
             const dayOfWeek = dateToCheck.getDay();
-            const dayName = days[dayOfWeek].toLowerCase();
-            const dayNamesFull = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const fullDayName = dayNamesFull[dayOfWeek];
+            const daysFull = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const fullDayName = daysFull[dayOfWeek];
 
             if (service.schedule[fullDayName] && !service.schedule[fullDayName].isActive) {
                 return true;
             }
         }
+
         return false;
     };
 
@@ -159,6 +203,10 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
     };
 
     if (!isOpen || !provider || !service) return null;
+
+    // Get blocked info for selected date
+    const selectedBlockedInfo = getBlockedInfo(selectedDate);
+    const isSelectedBlocked = selectedBlockedInfo?.isFullDay;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -232,25 +280,34 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
                                 {Array.from({ length: daysInMonth }).map((_, i) => {
                                     const day = i + 1;
                                     const isDisabled = isDayDisabled(day);
+                                    const blockedInfo = getBlockedInfo(day);
+                                    const isBlocked = !!blockedInfo;
+                                    const isFullBlock = blockedInfo?.isFullDay;
                                     const isSelected = selectedDate === day;
 
                                     return (
-                                        <div key={day} className="flex justify-center">
+                                        <div key={day} className="flex justify-center relative">
                                             <button
                                                 onClick={() => !isDisabled && setSelectedDate(day)}
-                                                disabled={isDisabled}
+                                                disabled={isDisabled} // Past dates and non-schedule days are disabled
+                                                title={isBlocked ? blockedInfo.reason : ''}
                                                 className={`
-                                                    w-10 h-10 rounded-xl flex items-center justify-center text-sm font-medium transition-all
+                                                    w-10 h-10 rounded-xl flex items-center justify-center text-sm font-medium transition-all relative
                                                     ${isDisabled
                                                         ? 'text-gray-300 cursor-not-allowed bg-gray-100'
                                                         : isSelected
-                                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
-                                                            : 'text-gray-700 hover:bg-white hover:shadow-sm cursor-pointer'
+                                                            ? (isFullBlock ? 'bg-red-500 text-white shadow-lg' : 'bg-blue-600 text-white shadow-lg scale-105')
+                                                            : isFullBlock
+                                                                ? 'text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 cursor-pointer'
+                                                                : 'text-gray-700 hover:bg-white hover:shadow-sm cursor-pointer'
                                                     }
                                                 `}
-                                                style={isSelected ? { background: 'linear-gradient(135deg, #155DFC 0%, #9810FA 100%)' } : {}}
+                                                style={isSelected && !isFullBlock ? { background: 'linear-gradient(135deg, #155DFC 0%, #9810FA 100%)' } : {}}
                                             >
                                                 {day}
+                                                {isBlocked && !isFullBlock && !isSelected && !isDisabled && (
+                                                    <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
+                                                )}
                                             </button>
                                         </div>
                                     );
@@ -284,11 +341,20 @@ const BookingModal = ({ isOpen, onClose, provider, service }) => {
                             </div>
                         )}
 
-                        <div className="bg-gray-50 rounded-2xl p-4 flex-1 flex flex-col min-h-[300px]">
+                        <div className={`rounded-2xl p-4 flex-1 flex flex-col min-h-[300px] ${isSelectedBlocked ? 'bg-red-50 border-2 border-red-100' : 'bg-gray-50'}`}>
                             {!selectedDate ? (
                                 <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                                     <IoCalendar className="text-4xl mb-2 opacity-50" />
                                     <p>Select a date to view available times</p>
+                                </div>
+                            ) : isSelectedBlocked ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-red-500 text-center">
+                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                        <IoAlertCircle className="text-3xl text-red-500" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-red-700 mb-2">Unavailable</h3>
+                                    <p className="font-medium">{selectedBlockedInfo.reason || 'This date is blocked by the provider.'}</p>
+                                    <p className="text-sm mt-2 opacity-80">Please select another date.</p>
                                 </div>
                             ) : loadingSlots ? (
                                 <div className="flex-1 flex flex-col items-center justify-center text-blue-500">
