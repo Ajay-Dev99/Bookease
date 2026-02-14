@@ -111,7 +111,7 @@ cd Bookease
     ```
 3.  Create a `.env` file in the `client` directory. **This is important as the default port might differ.**
     ```env
-    VITE_API_URL=http://localhost:5000/api/v1
+    VITE_API_URL=http://localhost:3000/api/v1
     ```
 4.  Start the development server:
     ```bash
