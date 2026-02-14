@@ -97,7 +97,7 @@ cd Bookease
     ```bash
     npm run dev
     ```
-    The server should be running at `http://localhost:5000`.
+    The server should be running at `http://localhost:3000`.
 
 ### 3. Frontend Setup (`client`)
 
